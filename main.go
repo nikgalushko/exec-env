@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -11,6 +11,8 @@ import (
 
 	"github.com/subosito/gotenv"
 )
+
+const errProcessFinished = "os: process already finished"
 
 func main() {
 	path := flag.String("f", "", "filepath to .env")
@@ -23,7 +25,8 @@ func main() {
 
 	args := flag.Args()
 	if len(args) == 0 {
-		fmt.Println("nothing to start")
+		log.Println("nothing to start")
+
 		os.Exit(0)
 	}
 
@@ -40,9 +43,7 @@ func main() {
 
 	err := cmd.Start()
 	if err != nil {
-		fmt.Println(err.Error())
-
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	signCh := make(chan os.Signal, 1)
@@ -57,21 +58,23 @@ func main() {
 
 	for {
 		select {
-		case s := <-signCh:
-			err = cmd.Process.Signal(s)
-			if err != nil {
-				fmt.Println("error sendind signal", s, err)
-			}
 		case err = <-waitCh:
+			if err == nil {
+				os.Exit(0)
+			}
+
 			exitErr, ok := err.(*exec.ExitError)
 			if ok {
 				childStatus := exitErr.Sys().(syscall.WaitStatus)
 
 				os.Exit(childStatus.ExitStatus())
 			} else {
-				fmt.Println(err.Error())
-
-				os.Exit(1)
+				log.Fatal(err)
+			}
+		case s := <-signCh:
+			err = cmd.Process.Signal(s)
+			if err != nil && err.Error() != errProcessFinished {
+				log.Println("error sendind signal", s, err)
 			}
 		}
 	}
@@ -84,9 +87,7 @@ func parseEnv(path string) map[string]string {
 
 	f, err := os.Open(filepath.Clean(path))
 	if err != nil {
-		fmt.Println(err.Error())
-
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	// beacuse of we only read a file
@@ -94,9 +95,7 @@ func parseEnv(path string) map[string]string {
 
 	env, err := gotenv.StrictParse(f)
 	if err != nil {
-		fmt.Println(err.Error())
-
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	return env
