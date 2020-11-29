@@ -1,6 +1,6 @@
 #  exec-env
 
-Execute a command using an environment form .env file. `exec-env` also proxies all os signals to child process.
+Execute a command using an environment from .env file. `exec-env` also proxies all os signals to child process.
 
 #  Installation
 ###   Github Release
