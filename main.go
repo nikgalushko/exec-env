@@ -14,9 +14,17 @@ import (
 
 const errProcessFinished = "os: process already finished"
 
+var version = ""
+
 func main() {
 	path := flag.String("f", "", "filepath to .env")
 	flag.Parse()
+
+	if os.Args[1] == "version" {
+		log.Printf("Version is %s\n", version)
+
+		os.Exit(0)
+	}
 
 	env := parseEnv(*path)
 	for key, value := range env {
